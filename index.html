@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FM Photo Studio - Wateja</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-logo">📸</div>
+    <div class="header-text">
+      <h1>FM Photo Studio</h1>
+      <p>Mfumo wa Customer Service</p>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+    <div class="card">
+      <h3>Register New Customer </h3>
+
+      <label>Tarehe</label>
+      <input type="date" id="date" />
+
+      <input type="text" id="name" placeholder="Jina la mteja" />
+      <input type="tel" id="phone" placeholder="Namba ya simu" />
+
+      <label>Aina ya picha (size)</label>
+      <select id="size">
+        <option value="Passport">Passport</option>
+        <option value="5x7">5x7</option>
+        <option value="A4">A4</option>
+      </select>
+
+      <label>Service</label>
+      <select id="kind">
+        <option value="Kawaida">Kawaida</option>
+        <option value="Editing">Editing</option>
+      </select>
+
+      <input type="number" id="taken" placeholder="Picha zilizopigwa" min="0" />
+      <input type="number" id="paid" placeholder="Picha alizolipia (0 kama hajalipa)" min="0" />
+      <input type="number" id="price" placeholder="Bei ya picha moja (TZS)" min="0" />
+
+      <button id="addBtn">Save Customer!</button>
+    </div>
+
+    <input type="text" id="search" class="search" placeholder="🔍 Search kwa Jina au Simu..." />
+
+    <div class="filters">
+      <button id="fAll" class="filter active">Wote</button>
+      <button id="fDebt" class="filter">Wenye Deni</button>
+    </div>
+
+    <div id="summary" class="summary"></div>
+
+    <div id="list"></div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
