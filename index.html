@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FM Photo Studio - Wateja</title>
+  <title>FM Photo Studio -Customer Service</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -33,15 +33,15 @@
         <option value="A4">A4</option>
       </select>
 
-      <label>Service</label>
-      <select id="kind">
-        <option value="Kawaida">Kawaida</option>
-        <option value="Editing">Editing</option>
-      </select>
+      <label>Idadi ya picha anazonunua</label>
+      <input type="number" id="taken" placeholder="Mfano: 5" min="0" />
 
-      <input type="number" id="taken" placeholder="Idadi ya picha" min="0" />
+      <label>Service: </label>
+      <input type="number" id="kawaida" placeholder=" Kawaida" min="0" />
+      <input type="number" id="editing" placeholder="Editing" min="0" />
+
+      <label>Kiasi alicholipa</label>
       <input type="number" id="paid" placeholder="Kiasi alicholipia " min="0" />
-      <input type="number" id="price" placeholder="Bei ya picha moja" min="0" />
 
       <button id="addBtn">Save Customer!</button>
     </div>
