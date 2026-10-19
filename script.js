@@ -107,7 +107,7 @@ function render() {
     }
   });
   document.getElementById("summary").innerHTML =
-    "💰 Madeni: <b>" + debtors + "</b> | Jumla ya deni: <b>TZS " + fmt(totalDebt) + "</b>";
+    " Madeni: <b>" + debtors + "</b> | Total Madeni: <b>TZS " + fmt(totalDebt) + "</b>";
 
   const filtered = clients.filter(c => {
     const match = c.name.toLowerCase().includes(q) || c.phone.includes(q);
@@ -116,7 +116,7 @@ function render() {
   });
 
   if (filtered.length === 0) {
-    listEl.innerHTML = "<p style='text-align:center'>Hakuna mteja.</p>";
+    listEl.innerHTML = "<p style='text-align:center'>No Customer.</p>";
     return;
   }
 
@@ -126,12 +126,12 @@ function render() {
     const price = c.price || 0;
     const debt = unpaid * price;
 
-    let badge = '<span class="badge no">Hajalipa</span>';
-    if (unpaid === 0) badge = '<span class="badge ok">Amelipa yote</span>';
+    let badge = '<span class="badge no">Unpaid</span>';
+    if (unpaid === 0) badge = '<span class="badge ok">Paid All</span>';
     else if (c.paid > 0) badge = '<span class="badge part">Ana deni</span>';
 
     const callBtn = (unpaid > 0 && c.phone)
-      ? `<a class="btn-call" href="tel:${c.phone}">📞 Piga Simu</a>`
+      ? `<a class="btn-call" href="tel:${c.phone}">📞 Call</a>`
       : "";
 
     return `
@@ -139,19 +139,19 @@ function render() {
         <h3>${c.name} ${badge}</h3>
         <p>📞 ${c.phone || "-"}</p>
         <p>
-          <span class="tag">📐 ${c.size || "-"}</span>
-          <span class="tag">${c.kind || "Kawaida"}</span>
+          <span class="tag">Size:${c.size || "-"}</span>
+          <span class="tag">Service:${c.kind || "Kawaida"}</span>
           <span class="tag">📅 ${showDate(c.date)}</span>
         </p>
         <p>Bei ya picha moja: <b>TZS ${fmt(price)}</b></p>
         <p>Zilizopigwa: <b>${c.taken}</b></p>
-        <p>Zilizolipiwa: <b>${c.paid}</b> | Hazijalipiwa: <b>${unpaid}</b></p>
-        <p>Zilizochukuliwa: <b>${c.collected}</b> | Anaweza kuchukua: <b>${canCollect}</b></p>
+        <p>Paid: <b>${c.paid}</b> | Unpaid: <b>${unpaid}</b></p>
+        <p>Zilizochukuliwa: <b>${c.collected}</b> | Anazoweza kuchukua: <b>${canCollect}</b></p>
         <p>Deni: <b>TZS ${fmt(debt)}</b></p>
-        <button class="btn-green" onclick="collect(${c.id})">Chukua</button>
-        <button onclick="addPayment(${c.id})">Ongeza Malipo</button>
+        <button class="btn-green" onclick="collect(${c.id})">Collect</button>
+        <button onclick="addPayment(${c.id})">Add Payment</button>
         ${callBtn}
-        <button onclick="editClient(${c.id})">Hariri</button>
+        <button onclick="editClient(${c.id})">Edit</button>
         <button class="btn-red" onclick="removeClient(${c.id})">Delete</button>
       </div>
     `;
