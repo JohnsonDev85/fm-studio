@@ -6,15 +6,30 @@ const firebaseConfig = {
   messagingSenderId: "719186626586",
   appId: "1:719186626586:web:4f4e3e73f93495931429a3"
 };
-let clients = JSON.parse(localStorage.getItem("fmClients")) || [];
+
+// Bei ya picha moja (TZS) kwa kila size.
+// Ukitaka kubadilisha bei au kuongeza size, badilisha hapa tu.
+const PRICES = {
+  "5x7": 1000,
+  "A4": 10000
+};
+
+function priceOf(c) {
+  return PRICES[c.size] || 1000;
+}
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const col = db.collection("clients");
+
+let clients = [];
+let filter = "all";
 
 const listEl = document.getElementById("list");
 const searchEl = document.getElementById("search");
 const dateEl = document.getElementById("date");
 
-let filter = "all";
-
-// Tarehe ya leo (kwa saa za simu yako)
+// ---------- Msaada ----------
 function today() {
   const d = new Date();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -22,61 +37,117 @@ function today() {
   return d.getFullYear() + "-" + m + "-" + day;
 }
 
-// 2026-10-19 -> 19/10/2026
 function showDate(s) {
   if (!s) return "-";
   const p = s.split("-");
   return p[2] + "/" + p[1] + "/" + p[0];
 }
 
-dateEl.value = today();
-
-function save() {
-  localStorage.setItem("fmClients", JSON.stringify(clients));
-}
-
 function fmt(n) {
   return Number(n).toLocaleString();
 }
 
+dateEl.value = today();
+
+// ---------- Firebase ----------
+col.onSnapshot(
+  snap => {
+    clients = snap.docs.map(d => d.data()).sort((a, b) => b.id - a.id);
+    render();
+  },
+  err => alert("connection error: " + err.message)
+);
+
+function saveClient(c) {
+  return col.doc(String(c.id)).set(c).catch(err => {
+    alert("Failed to save: " + err.message);
+  });
+}
+
+// ---------- Hesabu ya pesa na salio ----------
+// Pesa inaongezwa kwenye salio, kisha picha zinalipiwa kadri pesa inavyotosha.
+// Kinachobaki kinakuwa salio la mteja.
+function applyMoney(c, money) {
+  const price = priceOf(c);
+  c.balance = (c.balance || 0) + money;
+  const unpaid = c.taken - c.paid;
+  if (unpaid > 0) {
+    const n = Math.min(unpaid, Math.floor(c.balance / price));
+    c.paid += n;
+    c.balance -= n * price;
+  }
+}
+
+function debtOf(c) {
+  const unpaid = c.taken - c.paid;
+  return Math.max(0, unpaid * priceOf(c) - (c.balance || 0));
+}
+
+// ---------- Kusajili mteja ----------
 document.getElementById("addBtn").addEventListener("click", () => {
   const name = document.getElementById("name").value.trim();
   const phone = document.getElementById("phone").value.trim();
   const size = document.getElementById("size").value;
-  const kind = document.getElementById("kind").value;
   const date = dateEl.value || today();
   const taken = parseInt(document.getElementById("taken").value) || 0;
-  const paid = parseInt(document.getElementById("paid").value) || 0;
-  const price = parseInt(document.getElementById("price").value) || 0;
+  const kawaida = parseInt(document.getElementById("kawaida").value) || 0;
+  const editing = parseInt(document.getElementById("editing").value) || 0;
+  let money = parseInt(document.getElementById("paid").value) || 0;
 
   if (!name) return alert("Weka jina la mteja");
-  if (taken <= 0) return alert("Weka idadi ya picha zilizopigwa");
-  if (price <= 0) return alert("Weka bei ya picha moja");
-  if (paid > taken) return alert("Alizolipia haziwezi kuzidi zilizopigwa");
+  if (taken <= 0) return alert("Weka idadi ya picha zote");
+  if (kawaida + editing !== taken) {
+    return alert(
+      "Kawaida (" + kawaida + ") + Editing (" + editing + ") = " + (kawaida + editing) +
+      ", lakini picha zote ni " + taken + ". Zinatakiwa zilingane."
+    );
+  }
 
-  clients.unshift({
+  // Angalia kama mteja ana salio kutoka kwenye usajili wa zamani
+  const old = clients.filter(r => {
+    if ((r.balance || 0) <= 0) return false;
+    if (phone) return r.phone === phone;
+    return r.name.toLowerCase() === name.toLowerCase();
+  });
+  const oldTotal = old.reduce((s, r) => s + r.balance, 0);
+
+  if (oldTotal > 0) {
+    const useOld = confirm(name + " ana salio la TZS " + fmt(oldTotal) + ". Litumike kwenye usajili huu?");
+    if (useOld) {
+      money += oldTotal;
+      old.forEach(r => {
+        r.balance = 0;
+        saveClient(r);
+      });
+    }
+  }
+
+  const c = {
     id: Date.now(),
     name: name,
     phone: phone,
     size: size,
-    kind: kind,
     date: date,
     taken: taken,
-    paid: paid,
-    price: price,
-    collected: 0
-  });
+    kawaida: kawaida,
+    editing: editing,
+    paid: 0,
+    collected: 0,
+    balance: 0
+  };
+  applyMoney(c, money);
+  saveClient(c);
 
-  save();
   document.getElementById("name").value = "";
   document.getElementById("phone").value = "";
   document.getElementById("taken").value = "";
+  document.getElementById("kawaida").value = "";
+  document.getElementById("editing").value = "";
   document.getElementById("paid").value = "";
-  document.getElementById("price").value = "";
   dateEl.value = today();
-  render();
 });
 
+// ---------- Search na filters ----------
 searchEl.addEventListener("input", render);
 
 document.getElementById("fAll").addEventListener("click", () => {
@@ -93,24 +164,24 @@ document.getElementById("fDebt").addEventListener("click", () => {
   render();
 });
 
+// ---------- Kuonyesha orodha ----------
 function render() {
   const q = searchEl.value.toLowerCase().trim();
 
-  // Jumla ya madeni
   let totalDebt = 0;
   let debtors = 0;
   clients.forEach(c => {
-    const unpaid = c.taken - c.paid;
-    if (unpaid > 0) {
-      totalDebt += unpaid * (c.price || 0);
+    const d = debtOf(c);
+    if (d > 0) {
+      totalDebt += d;
       debtors++;
     }
   });
   document.getElementById("summary").innerHTML =
-    " Madeni: <b>" + debtors + "</b> | Total Madeni: <b>TZS " + fmt(totalDebt) + "</b>";
+    "Madeni: <b>" + debtors + "</b> | Total Madeni: <b>TZS " + fmt(totalDebt) + "</b>";
 
   const filtered = clients.filter(c => {
-    const match = c.name.toLowerCase().includes(q) || c.phone.includes(q);
+    const match = c.name.toLowerCase().includes(q) || (c.phone || "").includes(q);
     const hasDebt = (c.taken - c.paid) > 0;
     return match && (filter === "all" || hasDebt);
   });
@@ -123,15 +194,19 @@ function render() {
   listEl.innerHTML = filtered.map(c => {
     const unpaid = c.taken - c.paid;
     const canCollect = c.paid - c.collected;
-    const price = c.price || 0;
-    const debt = unpaid * price;
+    const debt = debtOf(c);
+    const balance = c.balance || 0;
 
     let badge = '<span class="badge no">Unpaid</span>';
     if (unpaid === 0) badge = '<span class="badge ok">Paid All</span>';
-    else if (c.paid > 0) badge = '<span class="badge part">Ana deni</span>';
+    else if (c.paid > 0 || balance > 0) badge = '<span class="badge part">Ana deni</span>';
 
     const callBtn = (unpaid > 0 && c.phone)
       ? `<a class="btn-call" href="tel:${c.phone}">📞 Call</a>`
+      : "";
+
+    const balanceLine = balance > 0
+      ? `<p class="balance">Salio: <b>TZS ${fmt(balance)}</b></p>`
       : "";
 
     return `
@@ -140,14 +215,15 @@ function render() {
         <p>📞 ${c.phone || "-"}</p>
         <p>
           <span class="tag">Size:${c.size || "-"}</span>
-          <span class="tag">Service:${c.kind || "Kawaida"}</span>
           <span class="tag">📅 ${showDate(c.date)}</span>
         </p>
-        <p>Bei ya picha moja: <b>TZS ${fmt(price)}</b></p>
+        <p>Kawaida: <b>${c.kawaida || 0}</b> | Editing: <b>${c.editing || 0}</b></p>
+        <p>Bei ya picha moja: <b>TZS ${fmt(priceOf(c))}</b></p>
         <p>Zilizopigwa: <b>${c.taken}</b></p>
         <p>Paid: <b>${c.paid}</b> | Unpaid: <b>${unpaid}</b></p>
         <p>Zilizochukuliwa: <b>${c.collected}</b> | Anazoweza kuchukua: <b>${canCollect}</b></p>
         <p>Deni: <b>TZS ${fmt(debt)}</b></p>
+        ${balanceLine}
         <button class="btn-green" onclick="collect(${c.id})">Collect</button>
         <button onclick="addPayment(${c.id})">Add Payment</button>
         ${callBtn}
@@ -162,6 +238,7 @@ function findClient(id) {
   return clients.find(c => c.id === id);
 }
 
+// ---------- Vitendo ----------
 function collect(id) {
   const c = findClient(id);
   const canCollect = c.paid - c.collected;
@@ -173,49 +250,43 @@ function collect(id) {
   }
 
   c.collected += n;
-  save();
-  render();
+  saveClient(c);
 }
 
 function addPayment(id) {
   const c = findClient(id);
-  const unpaid = c.taken - c.paid;
-  const n = parseInt(prompt("Analipia picha ngapi? (Zilizobaki kulipiwa: " + unpaid + ")"));
+  const n = parseInt(prompt("Amount? Deni lake: " + fmt(debtOf(c))));
   if (!n || n <= 0) return;
 
-  if (n > unpaid) return alert("Zimebaki picha " + unpaid + " tu za kulipia.");
-
-  c.paid += n;
-  save();
-  render();
+  applyMoney(c, n);
+  saveClient(c);
 }
 
 function editClient(id) {
   const c = findClient(id);
   const name = prompt("Jina:", c.name);
   if (name === null) return;
-  const phone = prompt("Simu:", c.phone);
+  const phone = prompt("Simu:", c.phone || "");
   if (phone === null) return;
-  const taken = parseInt(prompt("Picha zilizopigwa:", c.taken));
-  if (isNaN(taken)) return;
-  const price = parseInt(prompt("Bei ya picha moja:", c.price || 0));
-  if (isNaN(price)) return;
+  const kawaida = parseInt(prompt("Picha za Kawaida:", c.kawaida || 0));
+  if (isNaN(kawaida) || kawaida < 0) return;
+  const editing = parseInt(prompt("Picha za Editing:", c.editing || 0));
+  if (isNaN(editing) || editing < 0) return;
 
-  if (taken < c.paid) return alert("Zilizopigwa haziwezi kuwa chini ya zilizolipiwa.");
+  const taken = kawaida + editing;
+  if (taken < c.paid) return alert("Picha zote (" + taken + ") haziwezi kuwa chini ya zilizolipiwa (" + c.paid + ").");
 
   c.name = name.trim() || c.name;
   c.phone = phone.trim();
+  c.kawaida = kawaida;
+  c.editing = editing;
   c.taken = taken;
-  c.price = price;
-  save();
-  render();
+  saveClient(c);
 }
 
 function removeClient(id) {
   if (!confirm("Una uhakika unataka kumfuta mteja huyu?")) return;
-  clients = clients.filter(c => c.id !== id);
-  save();
-  render();
+  col.doc(String(id)).delete().catch(err => {
+    alert("Imeshindwa kufuta: " + err.message);
+  });
 }
-
-render();
