@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FM Photo Studio -Customer Service</title>
+  <title>FM Photo Studio - Customer Service</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -18,8 +18,25 @@
 
   <div class="wrap">
 
+    <!-- REGISTER EVENT -->
+    <div class="card">
+      <h3>Register New Event</h3>
+
+      <label>Tarehe</label>
+      <input type="date" id="eventDate" />
+
+      <input type="text" id="eventName" placeholder="Jina la event" />
+      <input type="text" id="eventLocation" placeholder="Location" />
+
+      <button id="addEventBtn">Save Event!</button>
+    </div>
+
+    <!-- REGISTER CUSTOMER -->
     <div class="card">
       <h3>Register New Customer</h3>
+
+      <label>Event</label>
+      <select id="eventSelect"></select>
 
       <label>Tarehe</label>
       <input type="date" id="date" />
@@ -46,7 +63,25 @@
       <button id="addBtn">Save Customer!</button>
     </div>
 
-    <input type="text" id="search" class="search" placeholder="🔍 Search kwa Jina au Simu..." />
+    <!-- EVENTS LIST -->
+    <div id="eventsList"></div>
+
+    <!-- HAMISHA WATEJA WA ZAMANI (futa baada ya kutumia) -->
+    <div class="card" id="migrateCard" style="display:none">
+      <h3>Wateja wasio na event</h3>
+      <p id="migrateInfo"></p>
+      <label>Wahamishie kwenye event</label>
+      <select id="migrateSelect"></select>
+      <button id="migrateBtn">Hamisha Wateja Wote</button>
+    </div>
+
+    <!-- FILTER YA EVENT -->
+    <label>View wateja wa event</label>
+    <select id="eventFilter">
+      <option value="all">Events zote</option>
+    </select>
+
+    <input type="text" id="search" class="search" placeholder="🔍 Search kwa Jina..." />
 
     <div class="filters">
       <button id="fAll" class="filter active">ALL</button>
